@@ -1,0 +1,60 @@
+
+#!/bin/bash
+# chkconfig: 2345 98 02
+# description: Starts and stops Solr production
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+set -e
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+SOLR_HOME=/opt/solr_install/apache-solr-3.5.0/example/
+PIDFILE=/var/run/solr.production.pid
+
+START_COMMAND="/usr/lib/jdk1.6.0_03/bin/java -Xms256M -Xmx512M -jar start.jar"
+LOG_FILE="/var/log/solr-console.log"
+NAME="Solr (production)"
+
+start() {
+  echo -n "Starting $NAME"
+  if [ -f $PIDFILE ]; then
+    echo -n "$PIDFILE exists. $NAME may be running."
+  else
+    cd $SOLR_HOME
+    $START_COMMAND 2 > $LOG_FILE &
+    sleep 2
+    echo `ps -ef | grep -v grep | grep "$START_COMMAND" | awk '{print $2}'` > $PIDFILE
+    echo "Done"
+  fi
+  return 0
+}
+
+stop() {
+  echo -n "Stopping $NAME"
+  kill `cat $PIDFILE`
+  rm $PIDFILE
+  echo "Done"
+  return 0
+}
+
+case "$1" in
+  start)
+    start
+  ;;
+  stop)
+    stop
+  ;;
+  restart)
+    stop
+    sleep 5
+    start
+  ;;
+
+*)
+echo "Usage: $0 (start | stop | restart)"
+exit 1
+esac
+
+exit $?
